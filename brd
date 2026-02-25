@@ -1,0 +1,470 @@
+TECHNICAL REQUIREMENTS DOCUMENT (TRD)
+NBHCA Revenue Engine
+Bespoke Ticket Sales & Events Management Platform
+
+Project Name: NBHCA Revenue Engine
+Client: The National B.A.M.E Health & Care Awards
+Prepared By: SmartDesk Studio Limited
+Version: 1.0
+Date: February 2026
+
+1. Technical Overview
+
+The NBHCA Revenue Engine will be a modular, Laravel-based web application designed to manage ticket sales, Stripe payment processing, attendee validation, and event revenue analytics.
+
+The system will:
+
+Operate as a standalone Laravel application
+
+Integrate with the existing NBHCA website
+
+Sync with the bespoke CRM system
+
+Use Stripe for secure payment processing
+
+Be deployed on a secure VPS environment (UK region for GDPR compliance)
+
+2. System Architecture
+2.1 Application Architecture
+
+Architecture Pattern: MVC (Laravel Standard)
+
+Backend:
+
+Laravel (Latest LTS version)
+
+RESTful controllers
+
+Service layer abstraction for Stripe integration
+
+Frontend:
+
+Blade templates
+
+TailwindCSS
+
+Alpine.js (light interactivity)
+
+Mobile-first responsive design
+
+Database:
+
+MySQL 8+ or PostgreSQL
+
+Indexed foreign keys
+
+Soft deletes enabled
+
+Payment Gateway:
+
+Stripe API
+
+Stripe Webhooks
+
+Stripe Checkout
+
+3. Hosting & Infrastructure
+3.1 Environment
+
+VPS hosting (UK-based data centre)
+
+Ubuntu 22.04 LTS
+
+Nginx
+
+PHP 8.2+
+
+MySQL/PostgreSQL
+
+SSL (Let’s Encrypt or equivalent)
+
+Firewall configured (UFW)
+
+3.2 Deployment
+
+Git-based deployment workflow
+
+Environment variables stored in .env
+
+Production & staging environments
+
+Daily automated database backup
+
+Scheduled job runner (Laravel scheduler)
+
+4. Core Modules & Technical Requirements
+4.1 Event Management Module
+Functional Capabilities:
+
+Create event
+
+Update event
+
+Archive event
+
+Set ticket sales start/end date
+
+Database Tables:
+
+events
+
+id
+
+title
+
+slug
+
+description
+
+start_date
+
+end_date
+
+venue
+
+status
+
+created_at
+
+updated_at
+
+4.2 Ticket Category Module
+
+Each event supports multiple ticket types.
+
+Database Table:
+
+ticket_types
+
+id
+
+event_id (FK)
+
+name
+
+price
+
+quantity_available
+
+quantity_sold
+
+early_bird_end_date
+
+status
+
+created_at
+
+updated_at
+
+Indexes required:
+
+event_id
+
+status
+
+4.3 Order Management Module
+
+Order created only after Stripe webhook confirmation.
+
+Database Table:
+
+orders
+
+id
+
+event_id
+
+stripe_session_id
+
+stripe_payment_intent_id
+
+buyer_name
+
+buyer_email
+
+total_amount
+
+currency
+
+payment_status
+
+refund_status
+
+created_at
+
+updated_at
+
+4.4 Ticket Issuance Module
+
+Each ticket must have:
+
+Unique identifier (UUID)
+
+QR code
+
+Validation status
+
+Database Table:
+
+tickets
+
+id
+
+order_id (FK)
+
+ticket_type_id (FK)
+
+uuid
+
+qr_code_path
+
+is_checked_in (boolean)
+
+checked_in_at
+
+created_at
+
+updated_at
+
+Unique constraint:
+
+uuid
+
+4.5 Stripe Integration
+4.5.1 Stripe Checkout Flow
+
+User selects ticket(s)
+
+Server creates Stripe Checkout Session
+
+User redirected to Stripe
+
+Stripe processes payment
+
+Stripe sends webhook
+
+System verifies webhook signature
+
+Order record created
+
+Tickets generated
+
+Confirmation email triggered
+
+Required Stripe Webhooks:
+
+checkout.session.completed
+
+payment_intent.succeeded
+
+payment_intent.payment_failed
+
+charge.refunded
+
+Webhook verification must use Stripe signature validation.
+
+No card details stored locally.
+
+4.6 QR Code Generation
+
+Use server-side QR library (e.g., Simple QR Code package)
+
+Encode ticket UUID
+
+Store QR as SVG or PNG
+
+Attach to PDF ticket
+
+4.7 PDF Ticket Generation
+
+Use DOMPDF or Snappy
+
+Include:
+
+Event details
+
+Buyer name
+
+Ticket type
+
+QR code
+
+Unique ticket ID
+
+Auto-email PDF attachment
+
+4.8 Check-In Module
+Technical Requirements:
+
+QR scanning via device camera
+
+Validation endpoint:
+
+Verify UUID
+
+Confirm not already checked in
+
+Mark as checked in
+
+Return success/failure response
+
+API Endpoint Example:
+
+POST /api/checkin/{uuid}
+
+Response:
+
+200: Valid
+
+409: Already used
+
+404: Invalid ticket
+
+4.9 Admin Dashboard
+
+Role-based authentication.
+
+Roles:
+
+Super Admin
+
+Event Admin
+
+Finance Admin
+
+Middleware:
+
+auth
+
+role-based access control
+
+Dashboard Components:
+
+Revenue overview
+
+Ticket sales summary
+
+Real-time metrics
+
+Refund log
+
+CSV export
+
+5. Security Requirements
+
+HTTPS enforced
+
+CSRF protection enabled
+
+XSS sanitisation
+
+Input validation
+
+Rate limiting on checkout endpoints
+
+Webhook signature verification
+
+Encrypted environment variables
+
+Role-based admin access
+
+Activity audit logs
+
+6. Performance Requirements
+
+Optimised queries with indexing
+
+Queue system for:
+
+Email sending
+
+Ticket PDF generation
+
+Cache event data
+
+Use Redis (optional but recommended)
+
+Load tested for peak traffic
+
+7. Integration Requirements
+7.1 CRM Integration
+
+System must:
+
+Sync buyer data to CRM
+
+Flag ticket buyers
+
+Allow post-event communication tracking
+
+Link orders to CRM contact records
+
+8. Logging & Monitoring
+
+Laravel log rotation
+
+Stripe webhook logs
+
+Error monitoring
+
+Payment failure tracking
+
+Audit logs for refunds & manual actions
+
+9. Compliance Requirements
+
+UK GDPR compliant storage
+
+Data export capability
+
+Right-to-erasure support
+
+Secure backups
+
+Restricted data access
+
+10. Future Scalability Requirements
+
+System must be architected to support:
+
+Multi-event management
+
+Subscription payments
+
+Sponsor package checkout
+
+Table booking logic
+
+Affiliate/referral tracking
+
+API exposure for mobile app
+
+11. Testing Requirements
+
+Unit tests for Stripe services
+
+Feature tests for checkout
+
+Webhook simulation testing
+
+Load testing before ticket launch
+
+UAT sign-off
+
+12. Acceptance Criteria
+
+System is considered technically complete when:
+
+Stripe payments process successfully
+
+Webhooks create orders reliably
+
+QR validation works in real time
+
+Refund process functions properly
+
+Reports reconcile with Stripe dashboard
+
+No payment data stored locally
+
+Performance acceptable under peak load
